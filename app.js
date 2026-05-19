@@ -574,8 +574,8 @@ function renderWaitingList() {
         <div class="item-meta">
           <span class="status-pill ${isReady(entry) ? "is-ready" : ""}">${isReady(entry) ? "再評価できる" : dueText}</span>
           <span class="tag">${formatDisplayDate(entry.createdAt)}</span>
-          <span class="tag">${entry.source}</span>
-          <span class="tag">${entry.emotion}</span>
+          <span class="tag">${escapeHtml(entry.source)}</span>
+          <span class="tag">${escapeHtml(entry.emotion)}</span>
           <span class="tag">${entry.necessity === "need" ? "必要品" : "嗜好品"}</span>
           ${entry.isSale ? `<span class="tag">セール</span>` : ""}
           ${entry.isWindfall ? `<span class="tag">臨時収入</span>` : ""}
@@ -682,14 +682,14 @@ function renderInsights() {
 }
 
 function buildInsight(title, body) {
-  return `<article class="insight-item"><p class="muted-label">${title}</p><p>${body}</p></article>`;
+  return `<article class="insight-item"><p class="muted-label">${escapeHtml(title)}</p><p>${escapeHtml(body)}</p></article>`;
 }
 
 function renderBar(label, value) {
   return `
     <div class="bar-item">
       <div class="bar-item__head">
-        <span>${label}</span>
+        <span>${escapeHtml(label)}</span>
         <span>${value}%</span>
       </div>
       <div class="bar-track">
@@ -1164,38 +1164,45 @@ function loadState() {
 }
 
 function sanitizeImportedState(data) {
+  const fallbackCreatedAt = new Date().toISOString();
+  const fallbackDueAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
+
   return {
     version: APP_VERSION,
     settings: {
-      defaultWaitHours: Number(data.settings?.defaultWaitHours || DEFAULT_STATE.settings.defaultWaitHours),
-      monthlyIncome: data.settings?.monthlyIncome ?? "",
-      hourlyRate: data.settings?.hourlyRate ?? "",
+      defaultWaitHours: Math.max(1, sanitizeNumber(data.settings?.defaultWaitHours, DEFAULT_STATE.settings.defaultWaitHours)),
+      monthlyIncome: sanitizeText(data.settings?.monthlyIncome, "", 40),
+      hourlyRate: sanitizeText(data.settings?.hourlyRate, "", 40),
       notificationsEnabled: Boolean(data.settings?.notificationsEnabled),
-      lastGoalUnlockUnits: Number(data.settings?.lastGoalUnlockUnits || 0),
+      lastGoalUnlockUnits: Math.max(0, sanitizeNumber(data.settings?.lastGoalUnlockUnits, 0)),
       goalUnlockBaselineReady: Boolean(data.settings?.goalUnlockBaselineReady),
     },
     entries: Array.isArray(data.entries)
-      ? data.entries.map((entry) => ({
-          id: entry.id || crypto.randomUUID(),
-          name: entry.name || "名称未設定",
-          price: Number(entry.price || 0),
-          source: entry.source || "SNS",
-          emotion: entry.emotion || "落ち着いている",
-          desireLevel: Number(entry.desireLevel || 0),
-          necessity: entry.necessity === "want" ? "want" : "need",
-          isSale: Boolean(entry.isSale),
-          isWindfall: Boolean(entry.isWindfall),
-          url: entry.url || "",
-          note: entry.note || "",
-          createdAt: entry.createdAt || new Date().toISOString(),
-          waitHours: Number(entry.waitHours || 72),
-          dueAt: entry.dueAt || new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
-          status: ["waiting", "skipped", "bought"].includes(entry.status) ? entry.status : "waiting",
-          reevaluation: entry.reevaluation || null,
-          satisfaction: entry.satisfaction || null,
-          decidedAt: entry.decidedAt || null,
-          notifiedAt: entry.notifiedAt || null,
-        }))
+      ? data.entries.map((entry) => {
+          const safeId = sanitizeText(entry?.id, "", 120) || crypto.randomUUID();
+
+          return {
+            id: safeId,
+            name: sanitizeText(entry?.name, "名称未設定", 80),
+            price: Math.max(0, sanitizeNumber(entry?.price, 0)),
+            source: sanitizeChoice(entry?.source, SOURCES, "SNS"),
+            emotion: sanitizeChoice(entry?.emotion, EMOTIONS, "落ち着いている"),
+            desireLevel: Math.max(0, sanitizeNumber(entry?.desireLevel, 0)),
+            necessity: entry.necessity === "want" ? "want" : "need",
+            isSale: Boolean(entry.isSale),
+            isWindfall: Boolean(entry.isWindfall),
+            url: sanitizeText(entry?.url, "", 500),
+            note: sanitizeText(entry?.note, "", 240),
+            createdAt: sanitizeIsoString(entry?.createdAt, fallbackCreatedAt),
+            waitHours: Math.max(1, sanitizeNumber(entry?.waitHours, 72)),
+            dueAt: sanitizeIsoString(entry?.dueAt, fallbackDueAt),
+            status: ["waiting", "skipped", "bought"].includes(entry?.status) ? entry.status : "waiting",
+            reevaluation: entry.reevaluation || null,
+            satisfaction: entry.satisfaction || null,
+            decidedAt: sanitizeOptionalIsoString(entry?.decidedAt),
+            notifiedAt: sanitizeOptionalIsoString(entry?.notifiedAt),
+          };
+        })
       : [],
   };
 }
@@ -1205,10 +1212,48 @@ function persistState() {
 }
 
 function escapeHtml(value) {
-  return value
+  return String(value ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function sanitizeText(value, fallback = "", maxLength = 240) {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  const normalized = value.trim().slice(0, maxLength);
+  return normalized || fallback;
+}
+
+function sanitizeChoice(value, allowedValues, fallback) {
+  return allowedValues.includes(value) ? value : fallback;
+}
+
+function sanitizeNumber(value, fallback = 0) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function sanitizeIsoString(value, fallback) {
+  const candidate = sanitizeText(value, "", 80);
+  if (!candidate) {
+    return fallback;
+  }
+
+  const parsed = new Date(candidate);
+  return Number.isNaN(parsed.getTime()) ? fallback : parsed.toISOString();
+}
+
+function sanitizeOptionalIsoString(value) {
+  const candidate = sanitizeText(value, "", 80);
+  if (!candidate) {
+    return null;
+  }
+
+  const parsed = new Date(candidate);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
