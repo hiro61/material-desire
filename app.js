@@ -464,8 +464,17 @@ function renderWishCards() {
         <span>欲しくなった日 ${formatDisplayDate(entry.createdAt)}</span>
         <span class="wish-card__status ${entry.status === "bought" ? "is-bought" : entry.status === "skipped" ? "is-skipped" : ""}">${formatStatus(entry.status)}</span>
       </div>
+      <div class="wish-card__actions">
+        <button class="danger-button wish-card__delete" data-delete-entry-id="${entry.id}" type="button">削除</button>
+      </div>
     </article>
   `).join("");
+
+  refs.wishCardGrid.querySelectorAll("[data-delete-entry-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      void deleteEntry(button.dataset.deleteEntryId);
+    });
+  });
 }
 
 function renderMetrics() {
@@ -579,6 +588,7 @@ function renderWaitingList() {
           <button class="secondary-button" data-action="extend" data-id="${entry.id}" type="button">+24時間</button>
           <button class="secondary-button" data-action="skip" data-id="${entry.id}" type="button">見送る</button>
           <button class="secondary-button" data-action="buy" data-id="${entry.id}" type="button">買った</button>
+          <button class="danger-button" data-action="delete" data-id="${entry.id}" type="button">削除</button>
         </div>
       </article>
     `;
@@ -609,12 +619,19 @@ function renderReadyList() {
       </div>
       <div class="item-actions">
         <button class="primary-button" data-ready-id="${entry.id}" type="button">再評価を開く</button>
+        <button class="danger-button" data-ready-delete-id="${entry.id}" type="button">削除</button>
       </div>
     </article>
   `).join("");
 
   refs.readyList.querySelectorAll("[data-ready-id]").forEach((button) => {
     button.addEventListener("click", () => openReevaluation(button.dataset.readyId));
+  });
+
+  refs.readyList.querySelectorAll("[data-ready-delete-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      void deleteEntry(button.dataset.readyDeleteId);
+    });
   });
 }
 
@@ -688,6 +705,11 @@ async function handleWaitingAction(action, id) {
     return;
   }
 
+  if (action === "delete") {
+    await deleteEntry(id);
+    return;
+  }
+
   if (action === "extend") {
     entry.waitHours += 24;
     entry.dueAt = new Date(new Date(entry.dueAt).getTime() + 24 * 60 * 60 * 1000).toISOString();
@@ -737,6 +759,32 @@ function openReevaluation(id) {
 
   updateReevalRecommendation();
   refs.reevalDialog.showModal();
+}
+
+async function deleteEntry(id) {
+  const entry = state.entries.find((item) => item.id === id);
+  if (!entry) {
+    return;
+  }
+
+  const confirmed = window.confirm(`「${entry.name}」をリストから削除する。本当に実行するかのう？`);
+  if (!confirmed) {
+    return;
+  }
+
+  state.entries = state.entries.filter((item) => item.id !== id);
+
+  if (currentEntryId === id) {
+    currentEntryId = null;
+    if (refs.reevalDialog.open) {
+      refs.reevalDialog.close();
+    }
+  }
+
+  persistState();
+  await syncGoalUnlockTracker(false);
+  renderAll();
+  scheduleNotifications();
 }
 
 function updateReevalRecommendation() {
