@@ -1,6 +1,8 @@
 const STORAGE_KEY = "material-desire-state-v2";
 const APP_VERSION = "2.0.0";
 const GOAL_AMOUNT = 240000;
+const GOAL_RING_RADIUS = 96;
+const GOAL_RING_CIRCUMFERENCE = 2 * Math.PI * GOAL_RING_RADIUS;
 const SOURCES = ["SNS", "ECサイト", "店舗", "知人の紹介", "動画", "広告"];
 const EMOTIONS = ["落ち着いている", "高揚", "退屈", "イライラ", "悲しい", "疲れている"];
 const VALUE_TAGS = ["自由", "安心", "成長", "関係性", "健康", "創造性"];
@@ -31,6 +33,8 @@ let selectedValueTags = new Set();
 let reevalDecision = "rewait";
 let scheduledTimers = [];
 let swRegistration = null;
+let goalRingAnimationTimer = null;
+let previousGoalRingValue = null;
 
 const refs = {};
 
@@ -54,8 +58,11 @@ function cacheRefs() {
   refs.goalCelebrate = document.querySelector("#goalCelebrate");
   refs.goalHeading = document.querySelector("#goalHeading");
   refs.goalRing = document.querySelector("#goalRing");
+  refs.goalCompletedRing = document.querySelector("#goalCompletedRing");
+  refs.goalProgressRing = document.querySelector("#goalProgressRing");
   refs.goalAmount = document.querySelector("#goalAmount");
   refs.goalPercent = document.querySelector("#goalPercent");
+  refs.goalLapBadge = document.querySelector("#goalLapBadge");
   refs.goalSupport = document.querySelector("#goalSupport");
   refs.goalStatRow = document.querySelector("#goalStatRow");
   refs.goalBanner = document.querySelector("#goalBanner");
@@ -361,15 +368,26 @@ function statCard(label, value) {
 
 function renderGoalRing() {
   const goalState = getGoalState();
-  const angle = Math.max(0, Math.min(360, goalState.lapRatio * 360));
   const remainingText = goalState.remainingToNext === 0
     ? "今は1つぶんの購入目安に到達しておる。どれを本当に買うか、保留カードを見返して選ぶのじゃ。"
     : `あと ${formatCurrency(goalState.remainingToNext)} で 1つぶんの購入目安に届く。`;
 
-  refs.goalRing.style.setProperty("--goal-angle", `${angle}deg`);
+  updateRingStroke(refs.goalCompletedRing, goalState.completedRingRatio);
+  updateRingStroke(refs.goalProgressRing, goalState.activeRingRatio);
+  refs.goalRing.dataset.lapMode = goalState.totalWaiting > GOAL_AMOUNT ? "multi" : "single";
+  refs.goalRing.setAttribute(
+    "aria-label",
+    `保留中合計 ${formatCurrency(goalState.totalWaiting)}。${goalState.lapLabel}、24万円で1周の進捗リング`
+  );
   refs.goalAmount.textContent = formatCurrency(goalState.totalWaiting);
-  refs.goalPercent.textContent = `${goalState.totalProgressPercent}%`;
+  refs.goalPercent.textContent = `${goalState.currentLapPercent}%`;
+  refs.goalLapBadge.textContent = goalState.lapLabel;
   refs.goalSupport.textContent = remainingText;
+
+  if (previousGoalRingValue !== null && previousGoalRingValue !== goalState.totalWaiting) {
+    triggerGoalRingAnimation();
+  }
+  previousGoalRingValue = goalState.totalWaiting;
 
   if (goalState.unlockableUnits > 0) {
     refs.goalCelebrate.textContent = "Congrats!";
@@ -388,6 +406,24 @@ function renderGoalRing() {
     goalStat("残り金額", goalState.remainingToNext === 0 ? "達成済み" : formatCurrency(goalState.remainingToNext)),
     goalStat("購入目安", `${goalState.unlockableUnits}点分`),
   ].join("");
+}
+
+function updateRingStroke(element, ratio) {
+  const safeRatio = Math.max(0, Math.min(1, ratio));
+  const dashoffset = GOAL_RING_CIRCUMFERENCE * (1 - safeRatio);
+  element.style.strokeDasharray = `${GOAL_RING_CIRCUMFERENCE}`;
+  element.style.strokeDashoffset = `${dashoffset}`;
+  element.style.opacity = safeRatio > 0 ? "1" : "0";
+}
+
+function triggerGoalRingAnimation() {
+  refs.goalRing.classList.remove("is-animating");
+  void refs.goalRing.offsetWidth;
+  refs.goalRing.classList.add("is-animating");
+  window.clearTimeout(goalRingAnimationTimer);
+  goalRingAnimationTimer = window.setTimeout(() => {
+    refs.goalRing.classList.remove("is-animating");
+  }, 640);
 }
 
 function goalStat(label, value) {
@@ -798,8 +834,26 @@ function getGoalState() {
   const totalWaiting = waitingEntries.reduce((sum, entry) => sum + entry.price, 0);
   const unlockableUnits = Math.floor(totalWaiting / GOAL_AMOUNT);
   const remainder = totalWaiting % GOAL_AMOUNT;
-  const lapAmount = totalWaiting === 0 ? 0 : remainder === 0 ? GOAL_AMOUNT : remainder;
-  const lapRatio = totalWaiting === 0 ? 0 : lapAmount / GOAL_AMOUNT;
+  const hasProgress = totalWaiting > 0;
+  const isExactLapCompletion = hasProgress && remainder === 0;
+  const completedRingRatio = unlockableUnits > 0 ? 1 : 0;
+  const activeRingRatio = !hasProgress
+    ? 0
+    : unlockableUnits > 0 && isExactLapCompletion
+      ? 0
+      : remainder === 0
+        ? 1
+        : remainder / GOAL_AMOUNT;
+  const currentLapIndex = !hasProgress
+    ? 1
+    : isExactLapCompletion
+      ? Math.max(1, unlockableUnits)
+      : unlockableUnits + 1;
+  const currentLapPercent = !hasProgress
+    ? 0
+    : isExactLapCompletion
+      ? 100
+      : Math.round((remainder / GOAL_AMOUNT) * 100);
   const remainingToNext = totalWaiting === 0
     ? GOAL_AMOUNT
     : remainder === 0
@@ -811,8 +865,12 @@ function getGoalState() {
     totalWaiting,
     unlockableUnits,
     remainder,
-    lapAmount,
-    lapRatio,
+    isExactLapCompletion,
+    completedRingRatio,
+    activeRingRatio,
+    currentLapIndex,
+    currentLapPercent,
+    lapLabel: isExactLapCompletion && hasProgress ? `${currentLapIndex}周達成` : `${currentLapIndex}周目`,
     remainingToNext,
     totalProgressPercent: Math.round((totalWaiting / GOAL_AMOUNT) * 100),
   };

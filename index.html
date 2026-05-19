@@ -43,12 +43,18 @@
 
           <div class="goal-ring-stage">
             <div class="goal-ring" id="goalRing" role="img" aria-label="保留中合計金額の進捗リング">
+              <svg class="goal-ring__svg" viewBox="0 0 240 240" aria-hidden="true">
+                <circle class="goal-ring__stroke goal-ring__track" cx="120" cy="120" r="96"></circle>
+                <circle class="goal-ring__stroke goal-ring__completed" id="goalCompletedRing" cx="120" cy="120" r="96"></circle>
+                <circle class="goal-ring__stroke goal-ring__progress" id="goalProgressRing" cx="120" cy="120" r="96"></circle>
+              </svg>
               <div class="goal-ring__inner">
                 <span class="goal-ring__label">現在</span>
                 <strong id="goalAmount">¥0</strong>
                 <span class="goal-ring__unit">保留中合計</span>
               </div>
               <span class="goal-ring__percent" id="goalPercent">0%</span>
+              <span class="goal-ring__lap-badge" id="goalLapBadge">1周目</span>
             </div>
             <p class="goal-ring__caption">24万円で1周</p>
             <p class="goal-ring__support" id="goalSupport">あと ¥240,000 で 1つぶんの購入目安に届く。</p>
