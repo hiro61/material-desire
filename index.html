@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <meta name="description" content="物欲を静かに観察し、待機と再評価で判断を整えるローカルファーストPWA。">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
+  <title>Material Desire</title>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Material Desire</p>
+        <h1>欲しい気持ちを、静かに整える。</h1>
+        <p class="header-copy">
+          欲求を否定せず、まず記録する。すぐ買う代わりに待ち、あとから別の視点で確かめるための記録アプリじゃ。
+        </p>
+      </div>
+      <div class="header-stats" id="headerStats"></div>
+    </header>
+
+    <main class="screen-grid" id="screenGrid">
+      <section class="screen-card is-active" data-screen="record">
+        <div class="screen-head">
+          <p class="screen-kicker">Screen 1</p>
+          <h2>即時記録</h2>
+          <p class="screen-copy">記録は10秒前後を目標に、感情と強度をひと息で残すのじゃ。</p>
+        </div>
+
+        <div class="card">
+          <div class="dial-layout">
+            <div class="dial-wrap">
+              <div class="desire-dial" id="desireDial" role="slider" aria-label="欲求の強さ" aria-valuemin="1" aria-valuemax="10" aria-valuenow="6" tabindex="0">
+                <div class="desire-dial__core">
+                  <span class="desire-dial__label">欲求強度</span>
+                  <strong id="dialValue">6</strong>
+                  <span class="desire-dial__scale">/ 10</span>
+                </div>
+              </div>
+            </div>
+            <div class="dial-meta">
+              <p class="muted-label">いまの状態</p>
+              <p class="dial-guidance" id="dialGuidance">少し勢いがある。すぐ決めず、ひと呼吸置く段階じゃ。</p>
+              <input id="desireRange" class="range-input" type="range" min="1" max="10" step="1" value="6">
+            </div>
+          </div>
+        </div>
+
+        <form class="record-form" id="recordForm">
+          <div class="field-grid">
+            <label class="field">
+              <span>欲しい物</span>
+              <input id="itemName" name="itemName" type="text" maxlength="80" placeholder="例: ノイズキャンセリングイヤホン" required>
+            </label>
+            <label class="field">
+              <span>価格</span>
+              <input id="itemPrice" name="itemPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="29800" required>
+            </label>
+          </div>
+
+          <div class="field-grid">
+            <label class="field">
+              <span>流入元</span>
+              <select id="itemSource" name="itemSource"></select>
+            </label>
+            <label class="field">
+              <span>感情状態</span>
+              <select id="itemEmotion" name="itemEmotion"></select>
+            </label>
+          </div>
+
+          <div class="chip-group" id="necessityGroup" aria-label="必要性">
+            <button class="chip is-selected" data-value="need" type="button">必要品</button>
+            <button class="chip" data-value="want" type="button">嗜好品</button>
+          </div>
+
+          <div class="toggle-row">
+            <label class="toggle">
+              <input id="isSale" type="checkbox">
+              <span>セール品</span>
+            </label>
+            <label class="toggle">
+              <input id="isWindfall" type="checkbox">
+              <span>臨時収入で買おうとしている</span>
+            </label>
+          </div>
+
+          <div class="field-grid">
+            <label class="field">
+              <span>待機時間（時間）</span>
+              <input id="waitHours" name="waitHours" type="number" min="1" max="336" step="1" placeholder="72">
+            </label>
+            <label class="field">
+              <span>商品URL（任意）</span>
+              <input id="itemUrl" name="itemUrl" type="url" placeholder="https://example.com/item">
+            </label>
+          </div>
+
+          <label class="field">
+            <span>メモ（任意）</span>
+            <textarea id="itemNote" name="itemNote" rows="3" maxlength="240" placeholder="何に惹かれたか、どんな状況か"></textarea>
+          </label>
+
+          <div class="context-note" id="compassionNote"></div>
+
+          <button class="primary-button" type="submit">記録して待機へ入る</button>
+        </form>
+      </section>
+
+      <section class="screen-card" data-screen="trend">
+        <div class="screen-head">
+          <p class="screen-kicker">Screen 2</p>
+          <h2>推移</h2>
+          <p class="screen-copy">月次の流れと、待機中の案件を静かに観察する画面じゃ。</p>
+        </div>
+
+        <div class="metric-grid" id="metricGrid"></div>
+
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="muted-label">7日トレンド</p>
+              <h3>欲求強度の推移</h3>
+            </div>
+            <span class="mini-pill" id="trendCaption">記録なし</span>
+          </div>
+          <div class="chart-wrap">
+            <svg id="trendChart" viewBox="0 0 320 180" aria-label="欲求強度の折れ線グラフ"></svg>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="muted-label">待機中</p>
+              <h3>後で買うリスト</h3>
+            </div>
+            <button class="text-button" id="notifyButton" type="button">通知設定</button>
+          </div>
+          <div class="waiting-list" id="waitingList"></div>
+        </div>
+      </section>
+
+      <section class="screen-card" data-screen="reflection">
+        <div class="screen-head">
+          <p class="screen-kicker">Screen 3</p>
+          <h2>振り返り</h2>
+          <p class="screen-copy">何が効いたか、どこで崩れやすいかを整理して、次の判断へ返すのじゃ。</p>
+        </div>
+
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="muted-label">再評価待ち</p>
+              <h3>見直すタイミング</h3>
+            </div>
+          </div>
+          <div class="ready-list" id="readyList"></div>
+        </div>
+
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="muted-label">簡易分析</p>
+              <h3>物欲が強くなりやすい条件</h3>
+            </div>
+          </div>
+          <div class="insight-stack" id="insightStack"></div>
+          <div class="bar-stack" id="barStack"></div>
+        </div>
+
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="muted-label">設定と保全</p>
+              <h3>ローカルデータ管理</h3>
+            </div>
+          </div>
+
+          <div class="settings-grid">
+            <label class="field">
+              <span>既定の待機時間</span>
+              <input id="defaultWaitHours" type="number" min="1" max="336" step="1">
+            </label>
+            <label class="field">
+              <span>月収（任意）</span>
+              <input id="monthlyIncome" type="number" min="0" step="1" placeholder="300000">
+            </label>
+            <label class="field">
+              <span>時給換算（任意）</span>
+              <input id="hourlyRate" type="number" min="0" step="1" placeholder="2500">
+            </label>
+          </div>
+
+          <div class="settings-actions">
+            <button class="secondary-button" id="saveSettingsButton" type="button">設定を保存</button>
+            <button class="secondary-button" id="exportButton" type="button">JSONを書き出す</button>
+            <button class="secondary-button" id="importButton" type="button">JSONを読み込む</button>
+            <button class="danger-button" id="resetButton" type="button">全データ削除</button>
+          </div>
+          <input id="importFile" type="file" accept="application/json" hidden>
+          <p class="quiet-note">
+            初期版はローカル保存じゃ。機種変更に備えるなら、定期的に JSON を書き出して保管するのが安全じゃのう。
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <nav class="mobile-nav" aria-label="画面切り替え">
+      <button class="mobile-nav__button is-active" data-target="record" type="button">入力</button>
+      <button class="mobile-nav__button" data-target="trend" type="button">推移</button>
+      <button class="mobile-nav__button" data-target="reflection" type="button">振り返り</button>
+    </nav>
+  </div>
+
+  <dialog class="reeval-dialog" id="reevalDialog">
+    <form class="reeval-form" id="reevalForm" method="dialog">
+      <div class="section-head">
+        <div>
+          <p class="muted-label">再評価</p>
+          <h3 id="reevalTitle">見直し</h3>
+        </div>
+        <button class="ghost-button" id="closeDialogButton" type="button">閉じる</button>
+      </div>
+
+      <div class="question-grid">
+        <label class="field">
+          <span>セールでなくても買うか</span>
+          <select id="saleIndependent"></select>
+        </label>
+        <label class="field">
+          <span>似た物を持っているか</span>
+          <select id="similarOwned"></select>
+        </label>
+        <label class="field">
+          <span>72時間前より本当に欲しいか</span>
+          <select id="stillStrong"></select>
+        </label>
+        <label class="field">
+          <span>悪いレビューや欠点を確認したか</span>
+          <select id="reviewChecked"></select>
+        </label>
+        <label class="field">
+          <span>何日で飽きそうか</span>
+          <input id="boredomDays" type="number" min="0" max="365" step="1" placeholder="30">
+        </label>
+        <label class="field">
+          <span>その金額で他に何ができるか</span>
+          <textarea id="alternativeUse" rows="3" maxlength="180" placeholder="例: 読書5冊、旅行積立、資格講座"></textarea>
+        </label>
+      </div>
+
+      <div>
+        <p class="muted-label">価値観タグ</p>
+        <div class="chip-group chip-group--wrap" id="valueTagGroup"></div>
+      </div>
+
+      <div class="reeval-result" id="reevalResult">
+        回答に応じて、見送り・再保留・購入可の提案をここに出すぞい。
+      </div>
+
+      <div class="dialog-actions">
+        <button class="secondary-button" data-decision="skip" type="submit">今は見送る</button>
+        <button class="secondary-button" data-decision="rewait" type="submit">24時間だけ再保留</button>
+        <button class="primary-button" data-decision="buy" type="submit">買ってよい</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>
