@@ -28,15 +28,14 @@
         <div class="screen-head">
           <p class="screen-kicker">Screen 1</p>
           <h2>即時記録</h2>
-          <p class="screen-copy">価格を積み上げて、24万円リングが満ちるまでは静かに待つ。そんな設計へ切り替えるのじゃ。</p>
         </div>
 
         <div class="card goal-panel">
           <div class="goal-panel__top">
             <div>
               <p class="goal-panel__day" id="goalPanelDay"></p>
-              <p class="goal-panel__celebrate" id="goalCelebrate">Steady build</p>
-              <h3 class="goal-panel__heading" id="goalHeading">保留金額を積み上げる</h3>
+              <p class="goal-panel__celebrate" id="goalCelebrate">静かに積み上げ中</p>
+              <h3 class="goal-panel__heading" id="goalHeading">保留合計の達成率</h3>
             </div>
             <button class="text-button" id="notifyButton" type="button">通知設定</button>
           </div>
@@ -49,15 +48,14 @@
                 <circle class="goal-ring__stroke goal-ring__progress" id="goalProgressRing" cx="120" cy="120" r="96"></circle>
               </svg>
               <div class="goal-ring__inner">
-                <span class="goal-ring__label">現在</span>
+                <span class="goal-ring__label">合計金額</span>
                 <strong id="goalAmount">¥0</strong>
                 <span class="goal-ring__unit">保留中合計</span>
               </div>
-              <span class="goal-ring__percent" id="goalPercent">0%</span>
-              <span class="goal-ring__lap-badge" id="goalLapBadge">1周目</span>
+              <span class="goal-ring__percent" id="goalPercent">進捗 0%</span>
+              <span class="goal-ring__lap-badge" id="goalLapBadge">達成率 0%</span>
             </div>
-            <p class="goal-ring__caption">24万円で1周</p>
-            <p class="goal-ring__support" id="goalSupport">あと ¥240,000 で 1つぶんの購入目安に届く。</p>
+            <p class="goal-ring__caption">目標金額 ¥240,000</p>
           </div>
 
           <div class="goal-stat-row" id="goalStatRow"></div>

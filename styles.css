@@ -1,23 +1,23 @@
 :root {
   color-scheme: light;
-  --bg: #ecf0ee;
-  --panel: rgba(255, 255, 255, 0.8);
-  --panel-strong: rgba(255, 255, 255, 0.96);
-  --border: rgba(17, 17, 17, 0.08);
-  --text: #121212;
-  --muted: #677171;
-  --soft: #8a9393;
+  --bg: #f7f9fc;
+  --panel: rgba(255, 255, 255, 0.9);
+  --panel-strong: rgba(255, 255, 255, 1);
+  --border: rgba(21, 31, 56, 0.08);
+  --text: #142033;
+  --muted: #637186;
+  --soft: #8a95a6;
   --accent: #111111;
-  --goal-track: #c3e8e3;
-  --goal-progress: #3daea1;
-  --goal-progress-boost: #1f83d8;
-  --goal-glow: rgba(61, 174, 161, 0.18);
-  --goal-glow-boost: rgba(31, 131, 216, 0.2);
-  --goal-surface: #edf8f6;
-  --goal-badge: #dff5f0;
-  --goal-badge-boost: #e4f0ff;
+  --goal-track: #d9deea;
+  --goal-progress: #203b67;
+  --goal-progress-mid: #f08b3e;
+  --goal-progress-high: #f1cc52;
+  --goal-progress-complete: #49a56b;
+  --goal-glow: rgba(32, 59, 103, 0.14);
+  --goal-surface: #ffffff;
+  --goal-badge: #eef3fb;
   --danger: #7b2424;
-  --shadow: 0 24px 70px rgba(12, 12, 12, 0.08);
+  --shadow: 0 24px 70px rgba(22, 33, 62, 0.08);
   --radius-xl: 32px;
   --radius-lg: 22px;
   --radius-md: 16px;
@@ -33,16 +33,13 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background:
-    radial-gradient(circle at top left, rgba(61, 174, 161, 0.12), transparent 26%),
-    radial-gradient(circle at bottom right, rgba(17, 17, 17, 0.05), transparent 34%),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   font-family: "Avenir Next", "Hiragino Sans", "Yu Gothic", sans-serif;
 }
 
 body {
-  padding: 24px 16px calc(92px + var(--safe-bottom));
+  padding: 28px 18px calc(92px + var(--safe-bottom));
 }
 
 button,
@@ -64,9 +61,9 @@ button {
 .app-header {
   display: grid;
   gap: 20px;
-  padding: 20px;
-  margin-bottom: 22px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 250, 249, 0.92));
+  padding: 24px;
+  margin-bottom: 24px;
+  background: rgba(255, 255, 255, 0.98);
   border: 1px solid var(--border);
   border-radius: 32px;
   box-shadow: var(--shadow);
@@ -100,8 +97,7 @@ button {
 .screen-copy,
 .quiet-note,
 .context-note,
-.empty-state,
-.goal-ring__support {
+.empty-state {
   color: var(--muted);
   line-height: 1.7;
 }
@@ -115,8 +111,8 @@ button {
 .header-stat,
 .metric {
   padding: 14px 16px;
-  background: rgba(17, 17, 17, 0.04);
-  border: 1px solid rgba(17, 17, 17, 0.06);
+  background: #f8fafc;
+  border: 1px solid rgba(21, 31, 56, 0.06);
   border-radius: 18px;
 }
 
@@ -135,13 +131,12 @@ button {
 
 .screen-card {
   display: none;
-  gap: 18px;
-  padding: 22px;
+  gap: 20px;
+  padding: 24px;
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   background: var(--panel);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(22px);
 }
 
 .screen-card.is-active {
@@ -154,14 +149,14 @@ button {
 }
 
 .card {
-  padding: 18px;
-  border: 1px solid rgba(17, 17, 17, 0.08);
+  padding: 22px;
+  border: 1px solid rgba(21, 31, 56, 0.08);
   border-radius: var(--radius-lg);
   background: var(--panel-strong);
 }
 
 .goal-panel {
-  background: linear-gradient(180deg, rgba(235, 247, 245, 0.96), rgba(252, 255, 255, 0.98));
+  background: #ffffff;
 }
 
 .goal-panel__top,
@@ -186,33 +181,35 @@ button {
 .goal-panel__celebrate {
   margin: 8px 0 0;
   font-weight: 700;
-  font-size: 1rem;
-  color: #28a194;
+  font-size: 0.92rem;
+  color: var(--muted);
   letter-spacing: 0.02em;
 }
 
 .goal-panel__heading {
-  font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+  font-size: clamp(1.55rem, 3.2vw, 2.2rem);
 }
 
 .goal-ring-stage {
   display: grid;
   justify-items: center;
-  gap: 12px;
-  margin-top: 6px;
+  gap: 14px;
+  margin-top: 8px;
 }
 
 .goal-ring {
   position: relative;
-  inline-size: min(330px, 72vw);
+  inline-size: min(320px, 76vw);
   aspect-ratio: 1;
   border-radius: 50%;
   display: grid;
   place-items: center;
   box-shadow:
-    0 18px 34px rgba(17, 17, 17, 0.12),
-    inset 0 0 0 14px rgba(255, 255, 255, 0.98);
+    0 16px 36px rgba(22, 33, 62, 0.1),
+    inset 0 0 0 12px rgba(255, 255, 255, 0.98);
   transition: transform 220ms ease, box-shadow 240ms ease;
+  --goal-progress-color: var(--goal-progress);
+  --goal-glow-color: var(--goal-glow);
 }
 
 .goal-ring.is-animating {
@@ -222,12 +219,12 @@ button {
 .goal-ring::before {
   content: "";
   position: absolute;
-  inset: 14px;
+  inset: 12px;
   border-radius: 50%;
-  background: linear-gradient(180deg, #fcffff, #ffffff);
+  background: #ffffff;
   box-shadow:
-    inset 0 0 0 1px rgba(17, 17, 17, 0.06),
-    0 8px 18px rgba(17, 17, 17, 0.06);
+    inset 0 0 0 1px rgba(21, 31, 56, 0.06),
+    0 8px 18px rgba(22, 33, 62, 0.04);
 }
 
 .goal-ring__svg {
@@ -249,9 +246,8 @@ button {
 }
 
 .goal-ring__track,
-.goal-ring__completed,
 .goal-ring__progress {
-  stroke-width: 28;
+  stroke-width: 22;
 }
 
 .goal-ring__track {
@@ -259,37 +255,46 @@ button {
 }
 
 .goal-ring__completed {
-  stroke: var(--goal-progress);
+  stroke: transparent;
   opacity: 0;
 }
 
 .goal-ring__progress {
-  stroke: var(--goal-progress);
-  filter: drop-shadow(0 0 14px rgba(61, 174, 161, 0.24));
+  stroke: var(--goal-progress-color);
+  filter: drop-shadow(0 0 12px var(--goal-glow-color));
 }
 
-.goal-ring[data-lap-mode="multi"] .goal-ring__progress {
-  stroke: var(--goal-progress-boost);
-  filter: drop-shadow(0 0 16px rgba(31, 131, 216, 0.3));
+.goal-ring[data-tone="navy"] {
+  --goal-progress-color: var(--goal-progress);
+  --goal-glow-color: rgba(32, 59, 103, 0.16);
 }
 
-.goal-ring[data-lap-mode="multi"] .goal-ring__percent,
-.goal-ring[data-lap-mode="multi"] .goal-ring__lap-badge {
-  color: #145e9f;
-  background: rgba(228, 240, 255, 0.98);
+.goal-ring[data-tone="orange"] {
+  --goal-progress-color: var(--goal-progress-mid);
+  --goal-glow-color: rgba(240, 139, 62, 0.18);
+}
+
+.goal-ring[data-tone="yellow"] {
+  --goal-progress-color: var(--goal-progress-high);
+  --goal-glow-color: rgba(241, 204, 82, 0.2);
+}
+
+.goal-ring[data-tone="green"] {
+  --goal-progress-color: var(--goal-progress-complete);
+  --goal-glow-color: rgba(73, 165, 107, 0.18);
 }
 
 .goal-ring__inner {
   position: relative;
   z-index: 1;
-  inline-size: 70%;
+  inline-size: 73%;
   aspect-ratio: 1;
   border-radius: 50%;
   display: grid;
   place-items: center;
   text-align: center;
   background: rgba(255, 255, 255, 0.98);
-  box-shadow: inset 0 0 0 2px rgba(17, 17, 17, 0.04);
+  box-shadow: inset 0 0 0 2px rgba(21, 31, 56, 0.04);
 }
 
 .goal-ring__label,
@@ -306,64 +311,57 @@ button {
 
 .goal-ring__percent {
   position: absolute;
-  right: 15%;
-  bottom: 15%;
+  right: 12%;
+  bottom: 12%;
   z-index: 1;
-  min-inline-size: 52px;
-  padding: 7px 10px;
+  min-inline-size: 76px;
+  padding: 8px 12px;
   border-radius: 999px;
-  font-size: 0.92rem;
+  font-size: 0.82rem;
   font-weight: 700;
-  color: #1f776f;
-  background: rgba(235, 251, 248, 0.96);
-  box-shadow: 0 8px 18px rgba(17, 17, 17, 0.08);
+  color: var(--goal-progress-color);
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(22, 33, 62, 0.08);
 }
 
 .goal-ring__lap-badge {
   position: absolute;
-  top: 12%;
+  top: 10%;
   left: 50%;
   z-index: 1;
   transform: translateX(-50%);
-  min-inline-size: 74px;
-  padding: 6px 12px;
+  min-inline-size: 96px;
+  padding: 8px 14px;
   border-radius: 999px;
-  background: rgba(223, 245, 240, 0.98);
-  color: #1f776f;
+  background: #ffffff;
+  color: var(--goal-progress-color);
   font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-align: center;
-  box-shadow: 0 8px 18px rgba(17, 17, 17, 0.08);
+  box-shadow: 0 8px 18px rgba(22, 33, 62, 0.08);
 }
 
 .goal-ring__caption {
   margin: 0;
-  font-size: 0.92rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 0.88rem;
+  letter-spacing: 0.02em;
   color: var(--muted);
-}
-
-.goal-ring__support {
-  margin: 0;
-  max-width: 520px;
-  text-align: center;
 }
 
 .goal-stat-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 14px;
+  margin-top: 8px;
 }
 
 .goal-stat {
-  padding: 14px 10px;
+  padding: 16px 12px;
   border-radius: 18px;
   text-align: center;
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(17, 17, 17, 0.07);
+  background: #f8fafc;
+  border: 1px solid rgba(21, 31, 56, 0.07);
 }
 
 .goal-stat__label {
@@ -379,22 +377,18 @@ button {
 }
 
 .goal-banner {
-  margin-top: 14px;
-  padding: 14px 16px;
+  display: none;
+  margin-top: 4px;
+  padding: 12px 14px;
   border-radius: 18px;
-  background: rgba(17, 17, 17, 0.05);
+  background: #edf8f1;
   color: var(--muted);
 }
 
 .goal-banner.is-unlocked {
-  background: linear-gradient(180deg, rgba(223, 245, 240, 0.92), rgba(236, 252, 249, 0.94));
-  color: #1f776f;
-  box-shadow: 0 14px 30px var(--goal-glow);
-}
-
-.goal-ring[data-lap-mode="multi"] + .goal-ring__caption,
-.goal-ring[data-lap-mode="multi"] ~ .goal-ring__support {
-  color: #4f6173;
+  display: block;
+  color: #2f7b4b;
+  box-shadow: 0 12px 24px rgba(73, 165, 107, 0.12);
 }
 
 .wish-card-grid,
@@ -419,9 +413,9 @@ button {
   gap: 10px;
   padding: 16px 18px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(17, 17, 17, 0.08);
-  box-shadow: 0 10px 24px rgba(17, 17, 17, 0.07);
+  background: #ffffff;
+  border: 1px solid rgba(21, 31, 56, 0.08);
+  box-shadow: 0 10px 24px rgba(22, 33, 62, 0.05);
 }
 
 .wish-card.is-dimmed {
@@ -496,7 +490,7 @@ button {
   padding: 14px 16px;
   border: 1px solid rgba(17, 17, 17, 0.12);
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.94);
+  background: #ffffff;
   color: var(--text);
 }
 
@@ -548,7 +542,7 @@ button {
 .context-note {
   padding: 14px 16px;
   border-radius: var(--radius-md);
-  background: rgba(17, 17, 17, 0.04);
+  background: #f7f9fc;
 }
 
 .primary-button,
@@ -578,7 +572,7 @@ button {
 
 .secondary-button,
 .ghost-button {
-  background: rgba(17, 17, 17, 0.06);
+  background: #f2f5fa;
   color: var(--text);
 }
 
@@ -602,7 +596,7 @@ button {
 .mini-pill {
   padding: 8px 12px;
   border-radius: 999px;
-  background: rgba(17, 17, 17, 0.06);
+  background: #f2f5fa;
   color: var(--muted);
   font-size: 0.82rem;
 }
@@ -647,8 +641,8 @@ button {
 .insight-item {
   padding: 14px;
   border-radius: var(--radius-md);
-  background: rgba(17, 17, 17, 0.035);
-  border: 1px solid rgba(17, 17, 17, 0.06);
+  background: #fbfcfe;
+  border: 1px solid rgba(21, 31, 56, 0.06);
 }
 
 .item-head {
@@ -674,7 +668,7 @@ button {
 .status-pill {
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(17, 17, 17, 0.06);
+  background: #f2f5fa;
   font-size: 0.82rem;
   color: var(--muted);
 }
@@ -700,14 +694,14 @@ button {
 .bar-track {
   height: 10px;
   border-radius: 999px;
-  background: rgba(17, 17, 17, 0.08);
+  background: #ecf1f8;
   overflow: hidden;
 }
 
 .bar-fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #bce8e2, #2d9a8e);
+  background: linear-gradient(90deg, #d1dae8, #203b67);
 }
 
 .settings-actions,
@@ -770,7 +764,7 @@ button {
 }
 
 .empty-state {
-  padding: 12px 0;
+  padding: 10px 0;
 }
 
 @media (min-width: 720px) {
@@ -790,23 +784,64 @@ button {
   0% {
     transform: scale(0.985);
     box-shadow:
-      0 14px 28px rgba(17, 17, 17, 0.1),
-      inset 0 0 0 14px rgba(255, 255, 255, 0.98);
+      0 12px 24px rgba(22, 33, 62, 0.08),
+      inset 0 0 0 12px rgba(255, 255, 255, 0.98);
   }
 
   45% {
     transform: scale(1.012);
     box-shadow:
-      0 22px 44px rgba(17, 17, 17, 0.14),
-      0 0 0 10px var(--goal-glow),
-      inset 0 0 0 14px rgba(255, 255, 255, 0.98);
+      0 20px 38px rgba(22, 33, 62, 0.12),
+      0 0 0 10px var(--goal-glow-color),
+      inset 0 0 0 12px rgba(255, 255, 255, 0.98);
   }
 
   100% {
     transform: scale(1);
     box-shadow:
-      0 18px 34px rgba(17, 17, 17, 0.12),
-      inset 0 0 0 14px rgba(255, 255, 255, 0.98);
+      0 16px 36px rgba(22, 33, 62, 0.1),
+      inset 0 0 0 12px rgba(255, 255, 255, 0.98);
+  }
+}
+
+@media (max-width: 719px) {
+  body {
+    padding: 18px 14px calc(92px + var(--safe-bottom));
+  }
+
+  .app-header,
+  .screen-card,
+  .card {
+    padding: 18px;
+  }
+
+  .header-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .goal-ring {
+    inline-size: min(286px, 78vw);
+  }
+
+  .goal-ring__inner strong {
+    font-size: clamp(1.8rem, 9vw, 3rem);
+  }
+
+  .goal-ring__percent {
+    right: 10%;
+    bottom: 10%;
+    min-inline-size: 70px;
+    padding: 7px 10px;
+    font-size: 0.78rem;
+  }
+
+  .goal-ring__lap-badge {
+    min-inline-size: 90px;
+    font-size: 0.76rem;
+  }
+
+  .goal-stat-row {
+    grid-template-columns: 1fr;
   }
 }
 

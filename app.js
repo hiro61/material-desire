@@ -63,7 +63,6 @@ function cacheRefs() {
   refs.goalAmount = document.querySelector("#goalAmount");
   refs.goalPercent = document.querySelector("#goalPercent");
   refs.goalLapBadge = document.querySelector("#goalLapBadge");
-  refs.goalSupport = document.querySelector("#goalSupport");
   refs.goalStatRow = document.querySelector("#goalStatRow");
   refs.goalBanner = document.querySelector("#goalBanner");
   refs.wishCardGrid = document.querySelector("#wishCardGrid");
@@ -368,21 +367,18 @@ function statCard(label, value) {
 
 function renderGoalRing() {
   const goalState = getGoalState();
-  const remainingText = goalState.remainingToNext === 0
-    ? "今は1つぶんの購入目安に到達しておる。どれを本当に買うか、保留カードを見返して選ぶのじゃ。"
-    : `あと ${formatCurrency(goalState.remainingToNext)} で 1つぶんの購入目安に届く。`;
+  const tone = getGoalTone(goalState.achievementRate);
 
-  updateRingStroke(refs.goalCompletedRing, goalState.completedRingRatio);
-  updateRingStroke(refs.goalProgressRing, goalState.activeRingRatio);
-  refs.goalRing.dataset.lapMode = goalState.totalWaiting > GOAL_AMOUNT ? "multi" : "single";
+  updateRingStroke(refs.goalCompletedRing, 0);
+  updateRingStroke(refs.goalProgressRing, goalState.progressRatio);
+  refs.goalRing.dataset.tone = tone.name;
   refs.goalRing.setAttribute(
     "aria-label",
-    `保留中合計 ${formatCurrency(goalState.totalWaiting)}。${goalState.lapLabel}、24万円で1周の進捗リング`
+    `保留中合計 ${formatCurrency(goalState.totalWaiting)}。達成率 ${goalState.achievementRate}% の進捗リング`
   );
   refs.goalAmount.textContent = formatCurrency(goalState.totalWaiting);
-  refs.goalPercent.textContent = `${goalState.currentLapPercent}%`;
-  refs.goalLapBadge.textContent = goalState.lapLabel;
-  refs.goalSupport.textContent = remainingText;
+  refs.goalPercent.textContent = `進捗 ${goalState.progressRate}%`;
+  refs.goalLapBadge.textContent = `達成率 ${goalState.achievementRate}%`;
 
   if (previousGoalRingValue !== null && previousGoalRingValue !== goalState.totalWaiting) {
     triggerGoalRingAnimation();
@@ -390,21 +386,21 @@ function renderGoalRing() {
   previousGoalRingValue = goalState.totalWaiting;
 
   if (goalState.unlockableUnits > 0) {
-    refs.goalCelebrate.textContent = "Congrats!";
-    refs.goalHeading.textContent = `${goalState.unlockableUnits}点分の購入目安に到達です`;
-    refs.goalBanner.textContent = `保留合計が ${formatCurrency(goalState.totalWaiting)} に到達。今なら目安として ${goalState.unlockableUnits} 点ぶん買える水準じゃ。`;
+    refs.goalCelebrate.textContent = tone.status;
+    refs.goalHeading.textContent = "保留合計の達成率";
+    refs.goalBanner.textContent = `目標金額に到達。現在 ${goalState.achievementRate}% じゃ。`;
     refs.goalBanner.classList.add("is-unlocked");
   } else {
-    refs.goalCelebrate.textContent = "Steady build";
-    refs.goalHeading.textContent = "保留金額を積み上げる";
-    refs.goalBanner.textContent = "リングは保留中の合計金額だけで進む。24万円で1周し、1つ買う前に積み上がりを見返す設計じゃ。";
+    refs.goalCelebrate.textContent = tone.status;
+    refs.goalHeading.textContent = "保留合計の達成率";
+    refs.goalBanner.textContent = "";
     refs.goalBanner.classList.remove("is-unlocked");
   }
 
   refs.goalStatRow.innerHTML = [
-    goalStat("保留中件数", `${goalState.waitingEntries.length}件`),
+    goalStat("進捗率", `${goalState.progressRate}%`),
+    goalStat("達成率", `${goalState.achievementRate}%`),
     goalStat("残り金額", goalState.remainingToNext === 0 ? "達成済み" : formatCurrency(goalState.remainingToNext)),
-    goalStat("購入目安", `${goalState.unlockableUnits}点分`),
   ].join("");
 }
 
@@ -424,6 +420,22 @@ function triggerGoalRingAnimation() {
   goalRingAnimationTimer = window.setTimeout(() => {
     refs.goalRing.classList.remove("is-animating");
   }, 640);
+}
+
+function getGoalTone(achievementRate) {
+  if (achievementRate >= 100) {
+    return { name: "green", status: "達成" };
+  }
+
+  if (achievementRate >= 80) {
+    return { name: "yellow", status: "あと少し" };
+  }
+
+  if (achievementRate >= 50) {
+    return { name: "orange", status: "折り返し" };
+  }
+
+  return { name: "navy", status: "静かに積み上げ中" };
 }
 
 function goalStat(label, value) {
@@ -833,46 +845,25 @@ function getGoalState() {
   const waitingEntries = getWaitingEntries();
   const totalWaiting = waitingEntries.reduce((sum, entry) => sum + entry.price, 0);
   const unlockableUnits = Math.floor(totalWaiting / GOAL_AMOUNT);
-  const remainder = totalWaiting % GOAL_AMOUNT;
-  const hasProgress = totalWaiting > 0;
-  const isExactLapCompletion = hasProgress && remainder === 0;
-  const completedRingRatio = unlockableUnits > 0 ? 1 : 0;
-  const activeRingRatio = !hasProgress
-    ? 0
-    : unlockableUnits > 0 && isExactLapCompletion
-      ? 0
-      : remainder === 0
-        ? 1
-        : remainder / GOAL_AMOUNT;
-  const currentLapIndex = !hasProgress
-    ? 1
-    : isExactLapCompletion
-      ? Math.max(1, unlockableUnits)
-      : unlockableUnits + 1;
-  const currentLapPercent = !hasProgress
-    ? 0
-    : isExactLapCompletion
-      ? 100
-      : Math.round((remainder / GOAL_AMOUNT) * 100);
+  const rawAchievementRate = GOAL_AMOUNT === 0 ? 0 : Math.round((totalWaiting / GOAL_AMOUNT) * 100);
+  const achievementRate = Math.max(0, rawAchievementRate);
+  const progressRate = Math.max(0, Math.min(100, achievementRate));
+  const progressRatio = progressRate / 100;
   const remainingToNext = totalWaiting === 0
     ? GOAL_AMOUNT
-    : remainder === 0
+    : totalWaiting >= GOAL_AMOUNT
       ? 0
-      : GOAL_AMOUNT - remainder;
+      : GOAL_AMOUNT - totalWaiting;
 
   return {
     waitingEntries,
     totalWaiting,
     unlockableUnits,
-    remainder,
-    isExactLapCompletion,
-    completedRingRatio,
-    activeRingRatio,
-    currentLapIndex,
-    currentLapPercent,
-    lapLabel: isExactLapCompletion && hasProgress ? `${currentLapIndex}周達成` : `${currentLapIndex}周目`,
+    achievementRate,
+    progressRate,
+    progressRatio,
     remainingToNext,
-    totalProgressPercent: Math.round((totalWaiting / GOAL_AMOUNT) * 100),
+    totalProgressPercent: achievementRate,
   };
 }
 
