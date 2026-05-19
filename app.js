@@ -1,5 +1,6 @@
-const STORAGE_KEY = "material-desire-state-v1";
-const APP_VERSION = "1.0.0";
+const STORAGE_KEY = "material-desire-state-v2";
+const APP_VERSION = "2.0.0";
+const GOAL_AMOUNT = 240000;
 const SOURCES = ["SNS", "ECサイト", "店舗", "知人の紹介", "動画", "広告"];
 const EMOTIONS = ["落ち着いている", "高揚", "退屈", "イライラ", "悲しい", "疲れている"];
 const VALUE_TAGS = ["自由", "安心", "成長", "関係性", "健康", "創造性"];
@@ -17,6 +18,8 @@ const DEFAULT_STATE = {
     monthlyIncome: "",
     hourlyRate: "",
     notificationsEnabled: false,
+    lastGoalUnlockUnits: 0,
+    goalUnlockBaselineReady: false,
   },
   entries: [],
 };
@@ -37,14 +40,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
   syncSettingsForm();
   syncRecordDefaults();
-  updateDial(Number(refs.desireRange.value));
+  updateCompassionNote();
+  renderGoalDay();
   await registerServiceWorker();
+  await syncGoalUnlockTracker(false);
   renderAll();
   scheduleNotifications();
 });
 
 function cacheRefs() {
   refs.headerStats = document.querySelector("#headerStats");
+  refs.goalPanelDay = document.querySelector("#goalPanelDay");
+  refs.goalCelebrate = document.querySelector("#goalCelebrate");
+  refs.goalHeading = document.querySelector("#goalHeading");
+  refs.goalRing = document.querySelector("#goalRing");
+  refs.goalAmount = document.querySelector("#goalAmount");
+  refs.goalPercent = document.querySelector("#goalPercent");
+  refs.goalSupport = document.querySelector("#goalSupport");
+  refs.goalStatRow = document.querySelector("#goalStatRow");
+  refs.goalBanner = document.querySelector("#goalBanner");
+  refs.wishCardGrid = document.querySelector("#wishCardGrid");
   refs.metricGrid = document.querySelector("#metricGrid");
   refs.waitingList = document.querySelector("#waitingList");
   refs.readyList = document.querySelector("#readyList");
@@ -53,10 +68,6 @@ function cacheRefs() {
   refs.trendChart = document.querySelector("#trendChart");
   refs.trendCaption = document.querySelector("#trendCaption");
   refs.recordForm = document.querySelector("#recordForm");
-  refs.desireRange = document.querySelector("#desireRange");
-  refs.desireDial = document.querySelector("#desireDial");
-  refs.dialValue = document.querySelector("#dialValue");
-  refs.dialGuidance = document.querySelector("#dialGuidance");
   refs.compassionNote = document.querySelector("#compassionNote");
   refs.itemSource = document.querySelector("#itemSource");
   refs.itemEmotion = document.querySelector("#itemEmotion");
@@ -90,6 +101,7 @@ function cacheRefs() {
 function populateSelectOptions() {
   populateSelect(refs.itemSource, SOURCES, "SNS");
   populateSelect(refs.itemEmotion, EMOTIONS, "落ち着いている");
+
   [refs.saleIndependent, refs.similarOwned, refs.stillStrong, refs.reviewChecked].forEach((select) => {
     select.innerHTML = YES_NO_OPTIONS.map((option) => `<option value="${option.value}">${option.label}</option>`).join("");
   });
@@ -106,10 +118,6 @@ function populateSelect(select, values, selected) {
 }
 
 function bindEvents() {
-  refs.desireRange.addEventListener("input", (event) => {
-    updateDial(Number(event.target.value));
-  });
-
   refs.itemEmotion.addEventListener("change", updateCompassionNote);
   refs.recordForm.addEventListener("submit", handleRecordSubmit);
 
@@ -125,8 +133,6 @@ function bindEvents() {
       setActiveScreen(button.dataset.target);
     });
   });
-
-  bindDialInteractions();
 
   refs.notifyButton.addEventListener("click", handleNotificationSetup);
   refs.saveSettingsButton.addEventListener("click", handleSettingsSave);
@@ -164,77 +170,8 @@ function bindEvents() {
   refs.reevalForm.addEventListener("submit", handleReevaluationSubmit);
 }
 
-function bindDialInteractions() {
-  let pointerActive = false;
-
-  const syncFromPointer = (event) => {
-    const rect = refs.desireDial.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const angle = Math.atan2(event.clientY - centerY, event.clientX - centerX);
-    let degrees = (angle * 180) / Math.PI + 90;
-
-    if (degrees < 0) {
-      degrees += 360;
-    }
-
-    const value = Math.min(10, Math.max(1, Math.round((degrees / 360) * 9) + 1));
-    refs.desireRange.value = String(value);
-    updateDial(value);
-  };
-
-  refs.desireDial.addEventListener("pointerdown", (event) => {
-    pointerActive = true;
-    refs.desireDial.setPointerCapture(event.pointerId);
-    syncFromPointer(event);
-  });
-
-  refs.desireDial.addEventListener("pointermove", (event) => {
-    if (pointerActive) {
-      syncFromPointer(event);
-    }
-  });
-
-  refs.desireDial.addEventListener("pointerup", () => {
-    pointerActive = false;
-  });
-
-  refs.desireDial.addEventListener("keydown", (event) => {
-    const current = Number(refs.desireRange.value);
-    if (event.key === "ArrowRight" || event.key === "ArrowUp") {
-      event.preventDefault();
-      refs.desireRange.value = String(Math.min(10, current + 1));
-      updateDial(Number(refs.desireRange.value));
-    }
-
-    if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
-      event.preventDefault();
-      refs.desireRange.value = String(Math.max(1, current - 1));
-      updateDial(Number(refs.desireRange.value));
-    }
-  });
-}
-
-function updateDial(value) {
-  const angle = ((value - 1) / 9) * 360;
-  refs.desireDial.style.setProperty("--dial-angle", `${angle}deg`);
-  refs.desireDial.setAttribute("aria-valuenow", String(value));
-  refs.dialValue.textContent = String(value);
-
-  const guidance = [
-    "かなり静かじゃ。衝動より必要性の確認が中心になりそうじゃ。",
-    "まだ落ち着いておる。機能と使い道を先に見れば足りる段階じゃ。",
-    "少し気になる程度じゃ。比較より必要性の確認が先じゃのう。",
-    "やや惹かれておる。今日の気分が影響していないかを見る段階じゃ。",
-    "勢いが出始めておる。今は結論を急がぬほうがよい。",
-    "少し勢いがある。すぐ決めず、ひと呼吸置く段階じゃ。",
-    "欲求が強まっておる。待機の効果が出やすい水準じゃ。",
-    "かなり欲しくなっておる。価格の現実感を戻すべき場面じゃ。",
-    "ほぼ衝動に近い。別用途比較と悪いレビュー確認が効くぞい。",
-    "最高潮じゃ。今すぐ買う判断は避けるのが妥当じゃ。",
-  ];
-
-  refs.dialGuidance.textContent = guidance[value - 1];
+function renderGoalDay() {
+  refs.goalPanelDay.textContent = formatJapaneseDate(new Date());
 }
 
 function updateCompassionNote() {
@@ -254,19 +191,17 @@ function syncSettingsForm() {
   refs.defaultWaitHours.value = state.settings.defaultWaitHours;
   refs.monthlyIncome.value = state.settings.monthlyIncome;
   refs.hourlyRate.value = state.settings.hourlyRate;
-  updateCompassionNote();
 }
 
 function syncRecordDefaults() {
   refs.waitHours.value = state.settings.defaultWaitHours;
 }
 
-function handleRecordSubmit(event) {
+async function handleRecordSubmit(event) {
   event.preventDefault();
 
   const name = document.querySelector("#itemName").value.trim();
   const price = Number(document.querySelector("#itemPrice").value);
-  const desireLevel = Number(refs.desireRange.value);
   const emotion = refs.itemEmotion.value;
   const source = refs.itemSource.value;
   const waitHours = Number(refs.waitHours.value || state.settings.defaultWaitHours);
@@ -281,7 +216,7 @@ function handleRecordSubmit(event) {
     price,
     source,
     emotion,
-    desireLevel,
+    desireLevel: 0,
     necessity: selectedNecessity,
     isSale: document.querySelector("#isSale").checked,
     isWindfall: document.querySelector("#isWindfall").checked,
@@ -298,12 +233,12 @@ function handleRecordSubmit(event) {
 
   state.entries.unshift(entry);
   persistState();
+  await syncGoalUnlockTracker(true);
+
   refs.recordForm.reset();
   refs.itemSource.value = "SNS";
   refs.itemEmotion.value = "落ち着いている";
   refs.waitHours.value = state.settings.defaultWaitHours;
-  refs.desireRange.value = "6";
-  updateDial(6);
   selectedNecessity = "need";
   refs.necessityButtons.forEach((button) => button.classList.toggle("is-selected", button.dataset.value === "need"));
   updateCompassionNote();
@@ -322,7 +257,7 @@ function handleSettingsSave() {
 
 async function handleNotificationSetup() {
   if (!("Notification" in window)) {
-    window.alert("このブラウザでは通知が使えんようじゃ。期限表示で運用するのが安全じゃのう。");
+    window.alert("このブラウザでは通知が使えんようじゃ。画面上の案内で見るのが安全じゃのう。");
     return;
   }
 
@@ -363,9 +298,12 @@ async function importData(event) {
     }
 
     state = sanitizeImportedState(parsed);
+    state.settings.goalUnlockBaselineReady = false;
     persistState();
     syncSettingsForm();
     syncRecordDefaults();
+    updateCompassionNote();
+    await syncGoalUnlockTracker(false);
     renderAll();
     scheduleNotifications();
   } catch (error) {
@@ -376,7 +314,7 @@ async function importData(event) {
   }
 }
 
-function resetData() {
+async function resetData() {
   const confirmed = window.confirm("全データを削除する。書き出し前なら戻せんが、本当に実行するかのう？");
   if (!confirmed) {
     return;
@@ -386,12 +324,16 @@ function resetData() {
   persistState();
   syncSettingsForm();
   syncRecordDefaults();
+  updateCompassionNote();
+  await syncGoalUnlockTracker(false);
   renderAll();
   scheduleNotifications();
 }
 
 function renderAll() {
   renderHeaderStats();
+  renderGoalRing();
+  renderWishCards();
   renderMetrics();
   renderTrendChart();
   renderWaitingList();
@@ -400,16 +342,16 @@ function renderAll() {
 }
 
 function renderHeaderStats() {
-  const readyCount = getReadyEntries().length;
-  const waitingCount = getWaitingEntries().length;
+  const goalState = getGoalState();
   const skippedCount = state.entries.filter((entry) => entry.status === "skipped").length;
   const boughtCount = state.entries.filter((entry) => entry.status === "bought").length;
 
   refs.headerStats.innerHTML = [
-    statCard("待機中", `${waitingCount}件`),
-    statCard("再評価待ち", `${readyCount}件`),
+    statCard("保留中", `${goalState.waitingEntries.length}件`),
+    statCard("保留合計", formatCurrency(goalState.totalWaiting)),
+    statCard("購入目安", `${goalState.unlockableUnits}点分`),
+    statCard("購入済み", `${boughtCount}件`),
     statCard("見送り", `${skippedCount}件`),
-    statCard("購入", `${boughtCount}件`),
   ].join("");
 }
 
@@ -417,24 +359,78 @@ function statCard(label, value) {
   return `<div class="header-stat"><span>${label}</span><strong>${value}</strong></div>`;
 }
 
+function renderGoalRing() {
+  const goalState = getGoalState();
+  const angle = Math.max(0, Math.min(360, goalState.lapRatio * 360));
+  const remainingText = goalState.remainingToNext === 0
+    ? "今は1つぶんの購入目安に到達しておる。どれを本当に買うか、保留カードを見返して選ぶのじゃ。"
+    : `あと ${formatCurrency(goalState.remainingToNext)} で 1つぶんの購入目安に届く。`;
+
+  refs.goalRing.style.setProperty("--goal-angle", `${angle}deg`);
+  refs.goalAmount.textContent = formatCurrency(goalState.totalWaiting);
+  refs.goalPercent.textContent = `${goalState.totalProgressPercent}%`;
+  refs.goalSupport.textContent = remainingText;
+
+  if (goalState.unlockableUnits > 0) {
+    refs.goalCelebrate.textContent = "Congrats!";
+    refs.goalHeading.textContent = `${goalState.unlockableUnits}点分の購入目安に到達です`;
+    refs.goalBanner.textContent = `保留合計が ${formatCurrency(goalState.totalWaiting)} に到達。今なら目安として ${goalState.unlockableUnits} 点ぶん買える水準じゃ。`;
+    refs.goalBanner.classList.add("is-unlocked");
+  } else {
+    refs.goalCelebrate.textContent = "Steady build";
+    refs.goalHeading.textContent = "保留金額を積み上げる";
+    refs.goalBanner.textContent = "リングは保留中の合計金額だけで進む。24万円で1周し、1つ買う前に積み上がりを見返す設計じゃ。";
+    refs.goalBanner.classList.remove("is-unlocked");
+  }
+
+  refs.goalStatRow.innerHTML = [
+    goalStat("保留中件数", `${goalState.waitingEntries.length}件`),
+    goalStat("残り金額", goalState.remainingToNext === 0 ? "達成済み" : formatCurrency(goalState.remainingToNext)),
+    goalStat("購入目安", `${goalState.unlockableUnits}点分`),
+  ].join("");
+}
+
+function goalStat(label, value) {
+  return `
+    <article class="goal-stat">
+      <span class="goal-stat__label">${label}</span>
+      <strong>${value}</strong>
+    </article>
+  `;
+}
+
+function renderWishCards() {
+  if (!state.entries.length) {
+    refs.wishCardGrid.innerHTML = `<p class="empty-state">まだ記録が無い。欲しい物と価格を入れると、ここへ横長カードで並ぶぞい。</p>`;
+    return;
+  }
+
+  const entries = [...state.entries].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  refs.wishCardGrid.innerHTML = entries.map((entry) => `
+    <article class="wish-card ${entry.status === "waiting" ? "" : "is-dimmed"}">
+      <div class="wish-card__top">
+        <span class="wish-card__title">${escapeHtml(entry.name)}</span>
+        <span class="wish-card__price">${formatCurrency(entry.price)}</span>
+      </div>
+      <div class="wish-card__meta">
+        <span>欲しくなった日 ${formatDisplayDate(entry.createdAt)}</span>
+        <span class="wish-card__status ${entry.status === "bought" ? "is-bought" : entry.status === "skipped" ? "is-skipped" : ""}">${formatStatus(entry.status)}</span>
+      </div>
+    </article>
+  `).join("");
+}
+
 function renderMetrics() {
   const entriesThisMonth = state.entries.filter((entry) => isCurrentMonth(entry.createdAt));
-  const skippedThisMonth = entriesThisMonth.filter((entry) => entry.status === "skipped");
+  const totalRecordedThisMonth = entriesThisMonth.reduce((sum, entry) => sum + entry.price, 0);
+  const goalState = getGoalState();
   const boughtThisMonth = entriesThisMonth.filter((entry) => entry.status === "bought");
-  const completedThisMonth = entriesThisMonth.filter((entry) => ["skipped", "bought"].includes(entry.status));
-  const savedAmount = skippedThisMonth.reduce((sum, entry) => sum + entry.price, 0);
-  const avgDesire = entriesThisMonth.length
-    ? (entriesThisMonth.reduce((sum, entry) => sum + entry.desireLevel, 0) / entriesThisMonth.length).toFixed(1)
-    : "0.0";
-  const holdRate = completedThisMonth.length
-    ? `${Math.round((skippedThisMonth.length / completedThisMonth.length) * 100)}%`
-    : "0%";
 
   const metrics = [
     { label: "今月の記録", value: `${entriesThisMonth.length}件` },
-    { label: "保留成功率", value: holdRate },
-    { label: "平均欲求強度", value: avgDesire },
-    { label: "見送り金額", value: formatCurrency(savedAmount) },
+    { label: "今月の記録額", value: formatCurrency(totalRecordedThisMonth) },
+    { label: "保留中合計", value: formatCurrency(goalState.totalWaiting) },
+    { label: "購入済み金額", value: formatCurrency(boughtThisMonth.reduce((sum, entry) => sum + entry.price, 0)) },
   ];
 
   refs.metricGrid.innerHTML = metrics.map((metric) => (
@@ -452,37 +448,35 @@ function renderTrendChart() {
 
   const points = days.map((date) => {
     const dayEntries = state.entries.filter((entry) => isSameDay(entry.createdAt, date));
-    const avg = dayEntries.length
-      ? dayEntries.reduce((sum, entry) => sum + entry.desireLevel, 0) / dayEntries.length
-      : 0;
     return {
       label: `${date.getMonth() + 1}/${date.getDate()}`,
-      value: avg,
+      value: dayEntries.reduce((sum, entry) => sum + entry.price, 0),
     };
   });
 
-  const maxValue = 10;
   const width = 320;
   const height = 180;
   const padding = 24;
   const usableWidth = width - padding * 2;
   const usableHeight = height - padding * 2;
   const hasData = points.some((point) => point.value > 0);
+  const totalWeek = points.reduce((sum, point) => sum + point.value, 0);
 
-  refs.trendCaption.textContent = hasData ? "最近7日間" : "記録なし";
+  refs.trendCaption.textContent = hasData ? `7日合計 ${formatCurrency(totalWeek)}` : "記録なし";
 
   if (!hasData) {
     refs.trendChart.innerHTML = `
       <line class="chart-axis" x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}"></line>
-      <text class="chart-label" x="${width / 2}" y="${height / 2}" text-anchor="middle">まだ折れ線になるほど記録がないのう</text>
+      <text class="chart-label" x="${width / 2}" y="${height / 2}" text-anchor="middle">まだ金額推移が出るほど記録がないのう</text>
     `;
     return;
   }
 
+  const maxValue = Math.max(...points.map((point) => point.value), 1000);
   const coordinates = points.map((point, index) => {
     const x = padding + (usableWidth / (points.length - 1)) * index;
     const y = height - padding - (point.value / maxValue) * usableHeight;
-    return { x, y, value: point.value, label: point.label };
+    return { x, y, label: point.label };
   });
 
   const polyline = coordinates.map((point) => `${point.x},${point.y}`).join(" ");
@@ -506,7 +500,7 @@ function renderWaitingList() {
   const waitingEntries = getWaitingEntries();
 
   if (!waitingEntries.length) {
-    refs.waitingList.innerHTML = `<p class="empty-state">待機中の案件はまだ無い。1件記録すると、ここへ並ぶぞい。</p>`;
+    refs.waitingList.innerHTML = `<p class="empty-state">保留中の案件はまだ無い。1件記録すると、ここへ詳細が並ぶぞい。</p>`;
     return;
   }
 
@@ -522,6 +516,7 @@ function renderWaitingList() {
         </div>
         <div class="item-meta">
           <span class="status-pill ${isReady(entry) ? "is-ready" : ""}">${isReady(entry) ? "再評価できる" : dueText}</span>
+          <span class="tag">${formatDisplayDate(entry.createdAt)}</span>
           <span class="tag">${entry.source}</span>
           <span class="tag">${entry.emotion}</span>
           <span class="tag">${entry.necessity === "need" ? "必要品" : "嗜好品"}</span>
@@ -578,15 +573,16 @@ function renderReadyList() {
 function renderInsights() {
   const entries = state.entries;
   if (!entries.length) {
-    refs.insightStack.innerHTML = `<p class="empty-state">記録が溜まると、強まりやすい感情や流入元をここで見られるぞい。</p>`;
+    refs.insightStack.innerHTML = `<p class="empty-state">記録が溜まると、どの感情や流入元で高額になりやすいかをここで見られるぞい。</p>`;
     refs.barStack.innerHTML = "";
     return;
   }
 
   const emotionStats = topCategory(entries, "emotion");
   const sourceStats = topCategory(entries, "source");
-  const highDesireEntries = entries.filter((entry) => entry.desireLevel >= 8);
-  const highDesireEmotion = highDesireEntries.length ? topCategory(highDesireEntries, "emotion") : null;
+  const averagePrice = entries.reduce((sum, entry) => sum + entry.price, 0) / entries.length;
+  const highPriceEntries = entries.filter((entry) => entry.price >= averagePrice);
+  const highPriceSource = highPriceEntries.length ? topCategory(highPriceEntries, "source") : null;
   const skipped = entries.filter((entry) => entry.status === "skipped");
   const bought = entries.filter((entry) => entry.status === "bought");
 
@@ -600,12 +596,12 @@ function renderInsights() {
       sourceStats ? `${sourceStats.label} からの流入が最も多い。露出を減らす工夫が効く可能性は ${estimateConfidence(sourceStats.count, entries.length)}% ほどじゃ。` : "まだ偏りは見えぬ。"
     ),
     buildInsight(
-      "強い物欲の条件",
-      highDesireEmotion ? `欲求強度 8 以上は ${highDesireEmotion.label} が最多じゃ。高リスク時間帯と組み合わせて見始める価値がある。` : "まだ高強度の偏りは十分に出ておらん。"
+      "平均以上の価格帯",
+      highPriceSource ? `平均価格 ${formatCurrency(averagePrice)} 以上の記録は ${highPriceSource.label} が最多じゃ。高額化の入口をここから見直せるぞい。` : "まだ高額帯の偏りは十分に出ておらん。"
     ),
     buildInsight(
       "判断の質",
-      `見送り ${skipped.length} 件、購入 ${bought.length} 件。見送り金額は ${formatCurrency(skipped.reduce((sum, entry) => sum + entry.price, 0))} じゃ。`
+      `見送り ${skipped.length} 件、購入 ${bought.length} 件。今の保留合計は ${formatCurrency(getGoalState().totalWaiting)} じゃ。`
     ),
   ];
 
@@ -638,7 +634,7 @@ function renderBar(label, value) {
   `;
 }
 
-function handleWaitingAction(action, id) {
+async function handleWaitingAction(action, id) {
   const entry = state.entries.find((item) => item.id === id);
   if (!entry) {
     return;
@@ -666,6 +662,7 @@ function handleWaitingAction(action, id) {
   }
 
   persistState();
+  await syncGoalUnlockTracker(false);
   renderAll();
   scheduleNotifications();
 }
@@ -729,7 +726,7 @@ function computeRecommendation() {
   return { score, message };
 }
 
-function handleReevaluationSubmit(event) {
+async function handleReevaluationSubmit(event) {
   event.preventDefault();
   const entry = state.entries.find((item) => item.id === currentEntryId);
   if (!entry) {
@@ -767,6 +764,7 @@ function handleReevaluationSubmit(event) {
   }
 
   persistState();
+  await syncGoalUnlockTracker(false);
   renderAll();
   scheduleNotifications();
   refs.reevalDialog.close();
@@ -782,11 +780,42 @@ function setActiveScreen(target) {
 }
 
 function getWaitingEntries() {
-  return state.entries.filter((entry) => entry.status === "waiting").sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt));
+  return state.entries
+    .filter((entry) => entry.status === "waiting")
+    .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt));
 }
 
 function getReadyEntries() {
   return getWaitingEntries().filter(isReady);
+}
+
+function getWaitingTotal() {
+  return getWaitingEntries().reduce((sum, entry) => sum + entry.price, 0);
+}
+
+function getGoalState() {
+  const waitingEntries = getWaitingEntries();
+  const totalWaiting = waitingEntries.reduce((sum, entry) => sum + entry.price, 0);
+  const unlockableUnits = Math.floor(totalWaiting / GOAL_AMOUNT);
+  const remainder = totalWaiting % GOAL_AMOUNT;
+  const lapAmount = totalWaiting === 0 ? 0 : remainder === 0 ? GOAL_AMOUNT : remainder;
+  const lapRatio = totalWaiting === 0 ? 0 : lapAmount / GOAL_AMOUNT;
+  const remainingToNext = totalWaiting === 0
+    ? GOAL_AMOUNT
+    : remainder === 0
+      ? 0
+      : GOAL_AMOUNT - remainder;
+
+  return {
+    waitingEntries,
+    totalWaiting,
+    unlockableUnits,
+    remainder,
+    lapAmount,
+    lapRatio,
+    remainingToNext,
+    totalProgressPercent: Math.round((totalWaiting / GOAL_AMOUNT) * 100),
+  };
 }
 
 function isReady(entry) {
@@ -805,6 +834,36 @@ async function registerServiceWorker() {
   }
 }
 
+async function syncGoalUnlockTracker(allowNotify) {
+  const goalState = getGoalState();
+  const currentUnits = goalState.unlockableUnits;
+
+  if (!state.settings.goalUnlockBaselineReady) {
+    state.settings.goalUnlockBaselineReady = true;
+    state.settings.lastGoalUnlockUnits = currentUnits;
+    persistState();
+    return;
+  }
+
+  if (currentUnits < state.settings.lastGoalUnlockUnits) {
+    state.settings.lastGoalUnlockUnits = currentUnits;
+    persistState();
+    return;
+  }
+
+  if (allowNotify && currentUnits > state.settings.lastGoalUnlockUnits) {
+    state.settings.lastGoalUnlockUnits = currentUnits;
+    persistState();
+    await notifyGoalUnlock(currentUnits, goalState.totalWaiting);
+    return;
+  }
+
+  if (!allowNotify && currentUnits !== state.settings.lastGoalUnlockUnits) {
+    state.settings.lastGoalUnlockUnits = currentUnits;
+    persistState();
+  }
+}
+
 function scheduleNotifications() {
   scheduledTimers.forEach((timerId) => window.clearTimeout(timerId));
   scheduledTimers = [];
@@ -816,12 +875,14 @@ function scheduleNotifications() {
   getWaitingEntries().forEach((entry) => {
     const dueMs = new Date(entry.dueAt).getTime() - Date.now();
     if (dueMs <= 0) {
-      notifyEntry(entry);
+      void notifyEntry(entry);
       return;
     }
 
     const delay = Math.min(dueMs, 2147483647);
-    const timerId = window.setTimeout(() => notifyEntry(entry), delay);
+    const timerId = window.setTimeout(() => {
+      void notifyEntry(entry);
+    }, delay);
     scheduledTimers.push(timerId);
   });
 }
@@ -835,12 +896,32 @@ async function notifyEntry(entry) {
   freshEntry.notifiedAt = new Date().toISOString();
   persistState();
 
-  const body = `「${freshEntry.name}」を静かに見直す時間じゃ。結論より、必要性と代替案を先に見てみるのじゃ。`;
+  const body = `「${freshEntry.name}」を静かに見直す時間じゃ。今すぐ買う前に、保留中の合計金額も見てから決めるのじゃ。`;
   if (swRegistration?.showNotification) {
     await swRegistration.showNotification("Material Desire", {
       body,
       tag: freshEntry.id,
       data: { entryId: freshEntry.id },
+    });
+  } else {
+    new Notification("Material Desire", { body });
+  }
+}
+
+async function notifyGoalUnlock(units, totalWaiting) {
+  if (!state.settings.notificationsEnabled || Notification.permission !== "granted") {
+    return;
+  }
+
+  const body = units === 1
+    ? `保留中合計が ${formatCurrency(totalWaiting)} に到達した。今なら目安として 1 点ぶん買えるぞい。`
+    : `保留中合計が ${formatCurrency(totalWaiting)}。今なら目安として ${units} 点ぶん買える水準じゃ。`;
+
+  if (swRegistration?.showNotification) {
+    await swRegistration.showNotification("Material Desire", {
+      body,
+      tag: `goal-unlock-${units}`,
+      data: { unlockableUnits: units },
     });
   } else {
     new Notification("Material Desire", { body });
@@ -918,7 +999,11 @@ function estimateConfidence(count, total) {
 }
 
 function formatCurrency(value) {
-  return new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY", maximumFractionDigits: 0 }).format(value || 0);
+  return new Intl.NumberFormat("ja-JP", {
+    style: "currency",
+    currency: "JPY",
+    maximumFractionDigits: 0,
+  }).format(value || 0);
 }
 
 function formatDateForFile(date) {
@@ -926,6 +1011,25 @@ function formatDateForFile(date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function formatDisplayDate(isoString) {
+  const date = new Date(isoString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatJapaneseDate(date) {
+  const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+  return `${date.getMonth() + 1}月${date.getDate()}日 (${weekdays[date.getDay()]})`;
+}
+
+function formatStatus(status) {
+  if (status === "bought") return "購入済み";
+  if (status === "skipped") return "見送り";
+  return "保留中";
 }
 
 function isCurrentMonth(isoString) {
@@ -945,11 +1049,17 @@ function isSameDay(isoString, targetDate) {
 
 function loadState() {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return structuredClone(DEFAULT_STATE);
+    const current = window.localStorage.getItem(STORAGE_KEY);
+    if (current) {
+      return sanitizeImportedState(JSON.parse(current));
     }
-    return sanitizeImportedState(JSON.parse(raw));
+
+    const legacy = window.localStorage.getItem("material-desire-state-v1");
+    if (legacy) {
+      return sanitizeImportedState(JSON.parse(legacy));
+    }
+
+    return structuredClone(DEFAULT_STATE);
   } catch (error) {
     console.error("Failed to load state", error);
     return structuredClone(DEFAULT_STATE);
@@ -960,10 +1070,12 @@ function sanitizeImportedState(data) {
   return {
     version: APP_VERSION,
     settings: {
-      defaultWaitHours: Number(data.settings.defaultWaitHours || DEFAULT_STATE.settings.defaultWaitHours),
-      monthlyIncome: data.settings.monthlyIncome ?? "",
-      hourlyRate: data.settings.hourlyRate ?? "",
-      notificationsEnabled: Boolean(data.settings.notificationsEnabled),
+      defaultWaitHours: Number(data.settings?.defaultWaitHours || DEFAULT_STATE.settings.defaultWaitHours),
+      monthlyIncome: data.settings?.monthlyIncome ?? "",
+      hourlyRate: data.settings?.hourlyRate ?? "",
+      notificationsEnabled: Boolean(data.settings?.notificationsEnabled),
+      lastGoalUnlockUnits: Number(data.settings?.lastGoalUnlockUnits || 0),
+      goalUnlockBaselineReady: Boolean(data.settings?.goalUnlockBaselineReady),
     },
     entries: Array.isArray(data.entries)
       ? data.entries.map((entry) => ({
@@ -972,7 +1084,7 @@ function sanitizeImportedState(data) {
           price: Number(entry.price || 0),
           source: entry.source || "SNS",
           emotion: entry.emotion || "落ち着いている",
-          desireLevel: Number(entry.desireLevel || 5),
+          desireLevel: Number(entry.desireLevel || 0),
           necessity: entry.necessity === "want" ? "want" : "need",
           isSale: Boolean(entry.isSale),
           isWindfall: Boolean(entry.isWindfall),

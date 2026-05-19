@@ -1,18 +1,22 @@
 :root {
   color-scheme: light;
-  --bg: #f3f3f1;
-  --panel: rgba(255, 255, 255, 0.82);
+  --bg: #ecf0ee;
+  --panel: rgba(255, 255, 255, 0.8);
   --panel-strong: rgba(255, 255, 255, 0.96);
-  --border: rgba(17, 17, 17, 0.1);
+  --border: rgba(17, 17, 17, 0.08);
   --text: #121212;
-  --muted: #676767;
-  --soft: #8b8b8b;
+  --muted: #677171;
+  --soft: #8a9393;
   --accent: #111111;
-  --accent-soft: #d8d8d8;
+  --goal-track: #c3e8e3;
+  --goal-progress: #3daea1;
+  --goal-glow: rgba(61, 174, 161, 0.18);
+  --goal-surface: #edf8f6;
+  --goal-badge: #dff5f0;
   --danger: #7b2424;
   --shadow: 0 24px 70px rgba(12, 12, 12, 0.08);
-  --radius-xl: 28px;
-  --radius-lg: 20px;
+  --radius-xl: 32px;
+  --radius-lg: 22px;
   --radius-md: 16px;
   --radius-sm: 12px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -27,8 +31,8 @@ body {
   margin: 0;
   min-height: 100%;
   background:
-    radial-gradient(circle at top left, rgba(17, 17, 17, 0.05), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(17, 17, 17, 0.06), transparent 30%),
+    radial-gradient(circle at top left, rgba(61, 174, 161, 0.12), transparent 26%),
+    radial-gradient(circle at bottom right, rgba(17, 17, 17, 0.05), transparent 34%),
     var(--bg);
   color: var(--text);
   font-family: "Avenir Next", "Hiragino Sans", "Yu Gothic", sans-serif;
@@ -50,7 +54,7 @@ button {
 }
 
 .app-shell {
-  max-width: 1400px;
+  max-width: 1440px;
   margin: 0 auto;
 }
 
@@ -59,7 +63,7 @@ button {
   gap: 20px;
   padding: 20px;
   margin-bottom: 22px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(250, 250, 248, 0.9));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 250, 249, 0.92));
   border: 1px solid var(--border);
   border-radius: 32px;
   box-shadow: var(--shadow);
@@ -67,7 +71,8 @@ button {
 
 .eyebrow,
 .screen-kicker,
-.muted-label {
+.muted-label,
+.goal-panel__day {
   margin: 0;
   color: var(--muted);
   font-size: 0.75rem;
@@ -77,7 +82,8 @@ button {
 
 .app-header h1,
 .screen-head h2,
-.section-head h3 {
+.section-head h3,
+.goal-panel__heading {
   margin: 6px 0 0;
   letter-spacing: -0.03em;
 }
@@ -90,9 +96,9 @@ button {
 .header-copy,
 .screen-copy,
 .quiet-note,
-.dial-guidance,
 .context-note,
-.empty-state {
+.empty-state,
+.goal-ring__support {
   color: var(--muted);
   line-height: 1.7;
 }
@@ -103,8 +109,9 @@ button {
   gap: 12px;
 }
 
-.header-stat {
-  padding: 14px;
+.header-stat,
+.metric {
+  padding: 14px 16px;
   background: rgba(17, 17, 17, 0.04);
   border: 1px solid rgba(17, 17, 17, 0.06);
   border-radius: 18px;
@@ -114,7 +121,7 @@ button {
 .metric strong {
   display: block;
   margin-top: 8px;
-  font-size: 1.6rem;
+  font-size: 1.55rem;
   letter-spacing: -0.04em;
 }
 
@@ -128,7 +135,7 @@ button {
   gap: 18px;
   padding: 22px;
   border: 1px solid var(--border);
-  border-radius: 30px;
+  border-radius: var(--radius-xl);
   background: var(--panel);
   box-shadow: var(--shadow);
   backdrop-filter: blur(22px);
@@ -150,96 +157,242 @@ button {
   background: var(--panel-strong);
 }
 
-.section-head {
+.goal-panel {
+  background: linear-gradient(180deg, rgba(235, 247, 245, 0.96), rgba(252, 255, 255, 0.98));
+}
+
+.goal-panel__top,
+.section-head,
+.item-head,
+.item-meta,
+.item-actions,
+.settings-actions,
+.dialog-actions {
   display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.goal-panel__top,
+.section-head,
+.item-head {
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
 }
 
-.dial-layout {
+.goal-panel__celebrate {
+  margin: 8px 0 0;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #28a194;
+  letter-spacing: 0.02em;
+}
+
+.goal-panel__heading {
+  font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+}
+
+.goal-ring-stage {
   display: grid;
-  gap: 18px;
-  align-items: center;
+  justify-items: center;
+  gap: 12px;
+  margin-top: 6px;
 }
 
-.dial-wrap {
-  display: flex;
-  justify-content: center;
-}
-
-.desire-dial {
+.goal-ring {
   position: relative;
-  width: min(280px, 64vw);
+  inline-size: min(330px, 72vw);
   aspect-ratio: 1;
   border-radius: 50%;
   display: grid;
   place-items: center;
   background:
-    conic-gradient(var(--accent) var(--dial-angle, 216deg), rgba(17, 17, 17, 0.08) 0deg);
+    conic-gradient(var(--goal-progress) var(--goal-angle, 0deg), var(--goal-track) 0deg);
   box-shadow:
-    inset 0 0 0 16px rgba(255, 255, 255, 0.92),
-    inset 0 0 0 17px rgba(17, 17, 17, 0.08);
-  user-select: none;
-  touch-action: none;
+    0 18px 34px rgba(17, 17, 17, 0.12),
+    inset 0 0 0 14px rgba(255, 255, 255, 0.98);
 }
 
-.desire-dial::after {
+.goal-ring::before {
   content: "";
   position: absolute;
-  width: 14px;
-  height: 14px;
-  top: 16px;
-  left: 50%;
-  transform:
-    translateX(-50%)
-    rotate(calc(var(--dial-angle, 216deg) - 90deg))
-    translateY(calc((min(280px, 64vw) / 2) - 16px));
-  transform-origin: center calc((min(280px, 64vw) / 2) - 16px);
-  background: var(--accent);
+  inset: 14px;
   border-radius: 50%;
+  background: linear-gradient(180deg, #fcffff, #ffffff);
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 17, 17, 0.06),
+    0 8px 18px rgba(17, 17, 17, 0.06);
 }
 
-.desire-dial__core {
-  width: 62%;
+.goal-ring__inner {
+  position: relative;
+  z-index: 1;
+  inline-size: 70%;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.96);
   display: grid;
   place-items: center;
   text-align: center;
-  padding: 18px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: inset 0 0 0 2px rgba(17, 17, 17, 0.04);
 }
 
-.desire-dial__label,
-.desire-dial__scale {
+.goal-ring__label,
+.goal-ring__unit {
   color: var(--soft);
-  font-size: 0.86rem;
+  font-size: 0.95rem;
 }
 
-.desire-dial__core strong {
-  font-size: clamp(2.6rem, 8vw, 4rem);
+.goal-ring__inner strong {
+  font-size: clamp(2rem, 7vw, 3.6rem);
   line-height: 1;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.06em;
 }
 
-.dial-meta {
+.goal-ring__percent {
+  position: absolute;
+  right: 15%;
+  bottom: 15%;
+  z-index: 1;
+  min-inline-size: 52px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #1f776f;
+  background: rgba(235, 251, 248, 0.96);
+  box-shadow: 0 8px 18px rgba(17, 17, 17, 0.08);
+}
+
+.goal-ring__caption {
+  margin: 0;
+  font-size: 0.92rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.goal-ring__support {
+  margin: 0;
+  max-width: 520px;
+  text-align: center;
+}
+
+.goal-stat-row {
   display: grid;
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
 }
 
-.range-input {
-  width: 100%;
-  accent-color: #111111;
+.goal-stat {
+  padding: 14px 10px;
+  border-radius: 18px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(17, 17, 17, 0.07);
 }
 
+.goal-stat__label {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.goal-stat strong {
+  display: block;
+  margin-top: 6px;
+  font-size: clamp(1.05rem, 3vw, 1.5rem);
+  letter-spacing: -0.04em;
+}
+
+.goal-banner {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(17, 17, 17, 0.05);
+  color: var(--muted);
+}
+
+.goal-banner.is-unlocked {
+  background: linear-gradient(180deg, rgba(223, 245, 240, 0.92), rgba(236, 252, 249, 0.94));
+  color: #1f776f;
+  box-shadow: 0 14px 30px var(--goal-glow);
+}
+
+.wish-card-grid,
 .record-form,
 .field-grid,
 .settings-grid,
-.question-grid {
+.question-grid,
+.waiting-list,
+.ready-list,
+.insight-stack,
+.bar-stack {
   display: grid;
   gap: 14px;
+}
+
+.wish-card-grid {
+  margin-top: 18px;
+}
+
+.wish-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  box-shadow: 0 10px 24px rgba(17, 17, 17, 0.07);
+}
+
+.wish-card.is-dimmed {
+  opacity: 0.7;
+}
+
+.wish-card__top,
+.wish-card__meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.wish-card__title {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.wish-card__price {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1b746d;
+}
+
+.wish-card__meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.wish-card__status {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--goal-badge);
+  color: #1f776f;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.wish-card__status.is-bought {
+  background: rgba(17, 17, 17, 0.08);
+  color: var(--muted);
+}
+
+.wish-card__status.is-skipped {
+  background: rgba(123, 36, 36, 0.08);
+  color: var(--danger);
 }
 
 .field-grid,
@@ -265,7 +418,7 @@ button {
   padding: 14px 16px;
   border: 1px solid rgba(17, 17, 17, 0.12);
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
   color: var(--text);
 }
 
@@ -286,7 +439,7 @@ button {
   padding: 10px 16px;
   border-radius: 999px;
   border: 1px solid rgba(17, 17, 17, 0.12);
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.9);
   color: var(--muted);
 }
 
@@ -311,7 +464,7 @@ button {
 .toggle input {
   inline-size: 18px;
   block-size: 18px;
-  accent-color: #111111;
+  accent-color: #2d9a8e;
 }
 
 .context-note {
@@ -368,13 +521,6 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.metric {
-  padding: 16px;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(17, 17, 17, 0.08);
-}
-
 .mini-pill {
   padding: 8px 12px;
   border-radius: 999px;
@@ -399,31 +545,23 @@ button {
 
 .chart-line {
   fill: none;
-  stroke: #111111;
+  stroke: #2d9a8e;
   stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .chart-fill {
-  fill: rgba(17, 17, 17, 0.08);
+  fill: rgba(61, 174, 161, 0.15);
 }
 
 .chart-point {
-  fill: #111111;
+  fill: #2d9a8e;
 }
 
 .chart-label {
   fill: #7a7a7a;
   font-size: 11px;
-}
-
-.waiting-list,
-.ready-list,
-.insight-stack,
-.bar-stack {
-  display: grid;
-  gap: 12px;
 }
 
 .waiting-item,
@@ -435,19 +573,8 @@ button {
   border: 1px solid rgba(17, 17, 17, 0.06);
 }
 
-.item-head,
-.item-meta,
-.item-actions,
-.settings-actions,
-.dialog-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
 .item-head {
   align-items: baseline;
-  justify-content: space-between;
 }
 
 .item-name {
@@ -502,7 +629,7 @@ button {
 .bar-fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #bdbdbd, #111111);
+  background: linear-gradient(90deg, #bce8e2, #2d9a8e);
 }
 
 .settings-actions,
@@ -576,8 +703,8 @@ button {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .dial-layout {
-    grid-template-columns: minmax(260px, 300px) 1fr;
+  .wish-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -594,6 +721,10 @@ button {
   .screen-card {
     display: grid;
     min-height: 100%;
+  }
+
+  .wish-card-grid {
+    grid-template-columns: 1fr;
   }
 
   .mobile-nav {

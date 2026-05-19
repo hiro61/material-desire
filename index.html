@@ -17,7 +17,7 @@
         <p class="eyebrow">Material Desire</p>
         <h1>欲しい気持ちを、静かに整える。</h1>
         <p class="header-copy">
-          欲求を否定せず、まず記録する。すぐ買う代わりに待ち、あとから別の視点で確かめるための記録アプリじゃ。
+          欲しい物の値段をいったん保留し、合計金額の積み上がりで判断を遅らせるための記録アプリじゃ。
         </p>
       </div>
       <div class="header-stats" id="headerStats"></div>
@@ -28,26 +28,36 @@
         <div class="screen-head">
           <p class="screen-kicker">Screen 1</p>
           <h2>即時記録</h2>
-          <p class="screen-copy">記録は10秒前後を目標に、感情と強度をひと息で残すのじゃ。</p>
+          <p class="screen-copy">価格を積み上げて、24万円リングが満ちるまでは静かに待つ。そんな設計へ切り替えるのじゃ。</p>
         </div>
 
-        <div class="card">
-          <div class="dial-layout">
-            <div class="dial-wrap">
-              <div class="desire-dial" id="desireDial" role="slider" aria-label="欲求の強さ" aria-valuemin="1" aria-valuemax="10" aria-valuenow="6" tabindex="0">
-                <div class="desire-dial__core">
-                  <span class="desire-dial__label">欲求強度</span>
-                  <strong id="dialValue">6</strong>
-                  <span class="desire-dial__scale">/ 10</span>
-                </div>
-              </div>
+        <div class="card goal-panel">
+          <div class="goal-panel__top">
+            <div>
+              <p class="goal-panel__day" id="goalPanelDay"></p>
+              <p class="goal-panel__celebrate" id="goalCelebrate">Steady build</p>
+              <h3 class="goal-panel__heading" id="goalHeading">保留金額を積み上げる</h3>
             </div>
-            <div class="dial-meta">
-              <p class="muted-label">いまの状態</p>
-              <p class="dial-guidance" id="dialGuidance">少し勢いがある。すぐ決めず、ひと呼吸置く段階じゃ。</p>
-              <input id="desireRange" class="range-input" type="range" min="1" max="10" step="1" value="6">
-            </div>
+            <button class="text-button" id="notifyButton" type="button">通知設定</button>
           </div>
+
+          <div class="goal-ring-stage">
+            <div class="goal-ring" id="goalRing" role="img" aria-label="保留中合計金額の進捗リング">
+              <div class="goal-ring__inner">
+                <span class="goal-ring__label">現在</span>
+                <strong id="goalAmount">¥0</strong>
+                <span class="goal-ring__unit">保留中合計</span>
+              </div>
+              <span class="goal-ring__percent" id="goalPercent">0%</span>
+            </div>
+            <p class="goal-ring__caption">24万円で1周</p>
+            <p class="goal-ring__support" id="goalSupport">あと ¥240,000 で 1つぶんの購入目安に届く。</p>
+          </div>
+
+          <div class="goal-stat-row" id="goalStatRow"></div>
+          <div class="goal-banner" id="goalBanner"></div>
+
+          <div class="wish-card-grid" id="wishCardGrid"></div>
         </div>
 
         <form class="record-form" id="recordForm">
@@ -115,7 +125,7 @@
         <div class="screen-head">
           <p class="screen-kicker">Screen 2</p>
           <h2>推移</h2>
-          <p class="screen-copy">月次の流れと、待機中の案件を静かに観察する画面じゃ。</p>
+          <p class="screen-copy">今月の記録額と、保留中の案件の動きをまとめて観察する画面じゃ。</p>
         </div>
 
         <div class="metric-grid" id="metricGrid"></div>
@@ -124,12 +134,12 @@
           <div class="section-head">
             <div>
               <p class="muted-label">7日トレンド</p>
-              <h3>欲求強度の推移</h3>
+              <h3>7日記録額の推移</h3>
             </div>
             <span class="mini-pill" id="trendCaption">記録なし</span>
           </div>
           <div class="chart-wrap">
-            <svg id="trendChart" viewBox="0 0 320 180" aria-label="欲求強度の折れ線グラフ"></svg>
+            <svg id="trendChart" viewBox="0 0 320 180" aria-label="7日記録額の折れ線グラフ"></svg>
           </div>
         </div>
 
@@ -137,9 +147,8 @@
           <div class="section-head">
             <div>
               <p class="muted-label">待機中</p>
-              <h3>後で買うリスト</h3>
+              <h3>保留中の詳細リスト</h3>
             </div>
-            <button class="text-button" id="notifyButton" type="button">通知設定</button>
           </div>
           <div class="waiting-list" id="waitingList"></div>
         </div>
@@ -149,7 +158,7 @@
         <div class="screen-head">
           <p class="screen-kicker">Screen 3</p>
           <h2>振り返り</h2>
-          <p class="screen-copy">何が効いたか、どこで崩れやすいかを整理して、次の判断へ返すのじゃ。</p>
+          <p class="screen-copy">何が高額化しやすいか、どこで崩れやすいかを整理して、次の判断へ返すのじゃ。</p>
         </div>
 
         <div class="card">
@@ -166,7 +175,7 @@
           <div class="section-head">
             <div>
               <p class="muted-label">簡易分析</p>
-              <h3>物欲が強くなりやすい条件</h3>
+              <h3>高額記録になりやすい条件</h3>
             </div>
           </div>
           <div class="insight-stack" id="insightStack"></div>
