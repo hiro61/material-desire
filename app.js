@@ -53,7 +53,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function cacheRefs() {
-  refs.headerStats = document.querySelector("#headerStats");
   refs.goalPanelDay = document.querySelector("#goalPanelDay");
   refs.goalCelebrate = document.querySelector("#goalCelebrate");
   refs.goalHeading = document.querySelector("#goalHeading");
@@ -337,7 +336,6 @@ async function resetData() {
 }
 
 function renderAll() {
-  renderHeaderStats();
   renderGoalRing();
   renderWishCards();
   renderMetrics();
@@ -345,24 +343,6 @@ function renderAll() {
   renderWaitingList();
   renderReadyList();
   renderInsights();
-}
-
-function renderHeaderStats() {
-  const goalState = getGoalState();
-  const skippedCount = state.entries.filter((entry) => entry.status === "skipped").length;
-  const boughtCount = state.entries.filter((entry) => entry.status === "bought").length;
-
-  refs.headerStats.innerHTML = [
-    statCard("保留中", `${goalState.waitingEntries.length}件`),
-    statCard("保留合計", formatCurrency(goalState.totalWaiting)),
-    statCard("購入目安", `${goalState.unlockableUnits}点分`),
-    statCard("購入済み", `${boughtCount}件`),
-    statCard("見送り", `${skippedCount}件`),
-  ].join("");
-}
-
-function statCard(label, value) {
-  return `<div class="header-stat"><span>${label}</span><strong>${value}</strong></div>`;
 }
 
 function renderGoalRing() {
